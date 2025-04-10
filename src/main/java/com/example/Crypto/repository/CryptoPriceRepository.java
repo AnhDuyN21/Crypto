@@ -1,6 +1,6 @@
-package com.example.Java_Crypto.Repository;
+package com.example.Crypto.repository;
 
-import com.example.Java_Crypto.Entity.CryptoPrice;
+import com.example.Crypto.entity.CryptoPrice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

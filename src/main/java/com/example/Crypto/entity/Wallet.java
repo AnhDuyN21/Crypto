@@ -1,9 +1,13 @@
-package com.example.Java_Crypto.Entity;
+package com.example.Crypto.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "wallets")
+@Getter
+@Setter
 public class Wallet {
 
     @Id
@@ -18,4 +22,3 @@ public class Wallet {
     @JoinColumn(name = "user_id")
     private User user;
 }
-

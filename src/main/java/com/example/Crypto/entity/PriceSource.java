@@ -1,4 +1,4 @@
-package com.example.Java_Crypto.Entity;
+package com.example.Crypto.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -21,4 +21,3 @@ public class PriceSource {
 
     private LocalDateTime timestamp;
 }
-

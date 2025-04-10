@@ -1,10 +1,10 @@
-package com.example.Java_Crypto;
+package com.example.Crypto;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class JavaCryptoApplicationTests {
+class CryptoApplicationTests {
 
 	@Test
 	void contextLoads() {

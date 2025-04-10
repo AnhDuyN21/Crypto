@@ -1,4 +1,4 @@
-package com.example.Java_Crypto.Entity;
+package com.example.Crypto.entity;
 
 import jakarta.persistence.*;
 
@@ -23,4 +23,3 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Transaction> transactions = new ArrayList<>();
 }
-
