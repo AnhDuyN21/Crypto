@@ -1,4 +1,4 @@
-package com.example.Java_Crypto.Config;
+package com.example.Crypto.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;

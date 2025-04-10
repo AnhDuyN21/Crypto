@@ -1,4 +1,4 @@
-package com.example.Java_Crypto.Entity;
+package com.example.Crypto.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -31,4 +31,3 @@ public class Transaction {
     @JoinColumn(name = "user_id")
     private User user;
 }
-
