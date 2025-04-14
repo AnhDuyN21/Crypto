@@ -1,6 +1,7 @@
 package com.example.Crypto.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
 
 
 import java.util.List;
@@ -8,6 +9,11 @@ import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -15,6 +21,10 @@ public class User {
     private Long id;
 
     private String username;
+
+    private String email;
+
+    private String password;
 
     // Mỗi user có nhiều ví
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
