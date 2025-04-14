@@ -1,15 +1,18 @@
 package com.example.Crypto.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "crypto_price")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CryptoPrice {
 
     @Id
@@ -19,10 +22,10 @@ public class CryptoPrice {
     private String pair; // ETHUSDT / BTCUSDT
 
     @Column(name = "best_ask_price")
-    private Double bestAskPrice;
+    private BigDecimal bestAskPrice;
 
     @Column(name = "best_bid_price")
-    private Double bestBidPrice;
+    private BigDecimal  bestBidPrice;
 
     private LocalDateTime updatedAt;
 }

@@ -5,117 +5,128 @@ import com.example.Crypto.repository.CryptoPriceRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Iterator;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PriceAggregationService {
 
-    // URL API từ các nguồn
+    // URLs cho API
     private static final String BINANCE_URL = "https://api.binance.com/api/v3/ticker/bookTicker";
     private static final String HUOBI_URL = "https://api.huobi.pro/market/tickers";
 
-    // Các cặp giao dịch cần aggregate
+    // Các cặp giao dịch cần xử lý (bạn có thể mở rộng thành danh sách nếu cần)
     private static final String ETHUSDT = "ETHUSDT";
     private static final String BTCUSDT = "BTCUSDT";
 
-
     private final CryptoPriceRepository cryptoPriceRepository;
-
-
     private final RestTemplate restTemplate;
-
-
     private final ObjectMapper objectMapper;
 
-    // Phương thức sẽ được chạy định kỳ mỗi 10 giây
+    // Chạy mỗi 10 giây
     @Scheduled(fixedRate = 10000)
     public void aggregatePrices() {
         try {
-            // 1. Gọi API Binance và chuyển kết quả sang dạng JsonNode
+            // Gọi API Binance
             ResponseEntity<String> binanceResponse = restTemplate.getForEntity(BINANCE_URL, String.class);
             JsonNode binanceData = objectMapper.readTree(binanceResponse.getBody());
 
-            // 2. Gọi API Huobi
+            // Gọi API Huobi; Huobi trả về JSON có key "data"
             ResponseEntity<String> huobiResponse = restTemplate.getForEntity(HUOBI_URL, String.class);
             JsonNode huobiRoot = objectMapper.readTree(huobiResponse.getBody());
-            // Huobi trả về dữ liệu chứa trong key "data"
             JsonNode huobiData = huobiRoot.get("data");
 
-            // 3. Xử lý aggregate cho các cặp giao dịch cần thiết
-            processPair(ETHUSDT, binanceData, huobiData);
-            processPair(BTCUSDT, binanceData, huobiData);
+            // Xử lý từng cặp giao dịch; có thể mở rộng thêm cặp khác nếu cần.
+            processAndUpdatePair(ETHUSDT, binanceData, huobiData);
+            processAndUpdatePair(BTCUSDT, binanceData, huobiData);
+
         } catch (Exception e) {
             e.printStackTrace();
-            // Ở đây nên dùng framework logging (ví dụ SLF4J) để log lỗi chi tiết
+            // Nên sử dụng logging framework để log chi tiết lỗi thay vì printStackTrace()
         }
     }
 
     /**
-     * Phương thức xử lý tính toán giá tốt nhất cho một pair từ dữ liệu của Binance và Huobi.
-     *
-     * @param pair       Cặp giao dịch cần xử lý (ví dụ: "ETHUSDT")
-     * @param binanceData Dữ liệu từ Binance dưới dạng JsonNode (dạng mảng ticker)
-     * @param huobiData   Dữ liệu từ Huobi dưới dạng JsonNode (danh sách ticker, nằm trong key "data")
+     * Phương thức này xử lý tính toán giá cho cặp giao dịch 'pair' từ dữ liệu của Binance và Huobi,
+     * so sánh với bản ghi hiện có trong DB và lưu giá mới nhất.
      */
-    private void processPair(String pair, JsonNode binanceData, JsonNode huobiData) {
-        // Khởi tạo bestAsk với giá cao nhất có thể và bestBid với 0
-        double bestAsk = Double.MAX_VALUE; // Giá mua tốt nhất: thấp nhất
-        double bestBid = 0;                // Giá bán tốt nhất: cao nhất
+    private void processAndUpdatePair(String pair, JsonNode binanceData, JsonNode huobiData) {
+        BigDecimal bestAsk = BigDecimal.valueOf(Double.MAX_VALUE); // Giá mua tốt nhất
+        BigDecimal bestBid = BigDecimal.ZERO;                      // Giá bán tốt nhất
 
-        // Xử lý dữ liệu từ Binance:
+        // Duyệt dữ liệu từ Binance
         Iterator<JsonNode> binanceIterator = binanceData.elements();
         while (binanceIterator.hasNext()) {
             JsonNode ticker = binanceIterator.next();
-            // So sánh symbol từ ticker với pair cần xử lý (không phân biệt chữ hoa/chữ thường)
             if (pair.equalsIgnoreCase(ticker.get("symbol").asText())) {
-                // Lấy giá ask và bid từ ticker
-                double askPrice = ticker.get("askPrice").asDouble();
-                double bidPrice = ticker.get("bidPrice").asDouble();
-                // Cập nhật bestAsk và bestBid bằng cách so sánh giá hiện tại với giá đã có
-                bestAsk = Math.min(bestAsk, askPrice);
-                bestBid = Math.max(bestBid, bidPrice);
-            }
-        }
+                JsonNode askNode = ticker.get("askPrice");
+                JsonNode bidNode = ticker.get("bidPrice");
 
-        // Xử lý dữ liệu từ Huobi (nếu có):
-        if (huobiData != null) {
-            Iterator<JsonNode> huobiIterator = huobiData.elements();
-            while (huobiIterator.hasNext()) {
-                JsonNode ticker = huobiIterator.next();
-                // Ví dụ: Huobi có thể cung cấp symbol bằng chữ thường, nên dùng equalsIgnoreCase
-                if (pair.equalsIgnoreCase(ticker.get("symbol").asText())) {
-                    double askPrice = ticker.get("ask").asDouble();
-                    double bidPrice = ticker.get("bid").asDouble();
-                    bestAsk = Math.min(bestAsk, askPrice);
-                    bestBid = Math.max(bestBid, bidPrice);
+                if (askNode != null && bidNode != null) {
+                    BigDecimal askPrice = new BigDecimal(askNode.asText());
+                    BigDecimal bidPrice = new BigDecimal(bidNode.asText());
+                    bestAsk = bestAsk.min(askPrice);
+                    bestBid = bestBid.max(bidPrice);
                 }
             }
         }
 
-        // Nếu không tìm thấy dữ liệu hợp lệ cho cặp, thông báo và dừng xử lý
-        if (bestAsk == Double.MAX_VALUE || bestBid == 0) {
+        // Duyệt dữ liệu từ Huobi
+        if (huobiData != null) {
+            Iterator<JsonNode> huobiIterator = huobiData.elements();
+            while (huobiIterator.hasNext()) {
+                JsonNode ticker = huobiIterator.next();
+                if (pair.equalsIgnoreCase(ticker.get("symbol").asText())) {
+                    JsonNode askNode = ticker.get("askPrice");
+                    JsonNode bidNode = ticker.get("bidPrice");
+
+                    // Nếu API Huobi dùng "ask" và "bid" thay vì "askPrice"/"bidPrice" => thay đổi key ở đây
+                    if (askNode != null && bidNode != null) {
+                        BigDecimal askPrice = new BigDecimal(askNode.asText());
+                        BigDecimal bidPrice = new BigDecimal(bidNode.asText());
+                        bestAsk = bestAsk.min(askPrice);
+                        bestBid = bestBid.max(bidPrice);
+                    }
+                }
+            }
+        }
+
+        // Kiểm tra xem có dữ liệu hợp lệ hay không
+        if (bestAsk.compareTo(BigDecimal.valueOf(Double.MAX_VALUE)) == 0 ||
+                bestBid.compareTo(BigDecimal.ZERO) == 0) {
             System.out.println("No pricing data found for pair: " + pair);
             return;
         }
 
-        // Tạo đối tượng CryptoPrice với giá tốt nhất đã được tính
-        CryptoPrice cryptoPrice = new CryptoPrice();
-        cryptoPrice.setPair(pair);
-        cryptoPrice.setBestAskPrice(bestAsk);
-        cryptoPrice.setBestBidPrice(bestBid);
-        cryptoPrice.setUpdatedAt(LocalDateTime.now());
+        // So sánh với giá hiện tại trong DB
+        CryptoPrice existingPrice = cryptoPriceRepository.findTopByPairOrderByUpdatedAtDesc(pair);
+        if (existingPrice != null &&
+                existingPrice.getBestAskPrice().compareTo(bestAsk) == 0 &&
+                existingPrice.getBestBidPrice().compareTo(bestBid) == 0) {
+            // Nếu giá không thay đổi, bỏ qua
+            return;
+        }
 
-        // Lưu đối tượng vào DB thông qua repository
+        // Tạo đối tượng và lưu DB
+        CryptoPrice cryptoPrice = CryptoPrice.builder()
+                .pair(pair)
+                .bestAskPrice(bestAsk)
+                .bestBidPrice(bestBid)
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         cryptoPriceRepository.save(cryptoPrice);
-
-        System.out.println("Aggregated " + pair + " -> Best Ask: " + bestAsk + ", Best Bid: " + bestBid);
+        System.out.println("Updated " + pair + ": Best Ask = " + bestAsk + ", Best Bid = " + bestBid);
     }
+
+
 }

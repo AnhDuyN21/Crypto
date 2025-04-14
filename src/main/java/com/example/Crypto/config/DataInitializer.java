@@ -8,6 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Component
@@ -25,7 +26,7 @@ public class DataInitializer implements CommandLineRunner {
             user1.setEmail("alice@gmail.com");
             user1.setPassword("123456");
 
-            Wallet wallet1 = new Wallet(null,"USDT", 50000.0, user1);
+            Wallet wallet1 = new Wallet(null,"USDT", new BigDecimal("50000.0"), user1);
             user1.getWallets().add(wallet1);
 
             User user2 = new User();
@@ -33,7 +34,7 @@ public class DataInitializer implements CommandLineRunner {
             user2.setEmail("bob@gmail.com");
             user2.setPassword("123456");
 
-            Wallet wallet2 = new Wallet(null, "USDT",50000.0,  user2);
+            Wallet wallet2 = new Wallet(null, "USDT",new BigDecimal("50000.0"),  user2);
             user2.getWallets().add(wallet2);
 
             userRepository.saveAll(List.of(user1, user2));

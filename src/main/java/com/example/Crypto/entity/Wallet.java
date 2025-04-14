@@ -3,6 +3,8 @@ package com.example.Crypto.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "wallets")
 @Getter
@@ -18,7 +20,7 @@ public class Wallet {
 
     private String currency; // BTC / ETH / USDT
 
-    private Double balance;
+    private BigDecimal balance;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
