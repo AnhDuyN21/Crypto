@@ -2,6 +2,8 @@ package com.example.Crypto.service;
 
 import com.example.Crypto.entity.Transaction;
 
+import java.math.BigDecimal;
+
 public interface TradeService {
     /**
      * Thực hiện giao dịch BUY hoặc SELL của một user.
@@ -12,5 +14,5 @@ public interface TradeService {
      * @param amount    số lượng giao dịch
      * @return giao dịch đã được lưu
      */
-    Transaction executeTrade(Long userId, String pair, String tradeType, double amount);
+    Transaction executeTrade(Long userId, String pair, String tradeType, BigDecimal amount);
 }

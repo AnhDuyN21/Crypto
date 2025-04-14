@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/trade")
 @AllArgsConstructor
@@ -27,7 +29,7 @@ public class TradeController {
             @PathVariable Long userId,
             @RequestParam String pair,
             @RequestParam String tradeType,
-            @RequestParam double amount) {
+            @RequestParam BigDecimal amount) {
         try {
             Transaction transaction = tradeService.executeTrade(userId, pair, tradeType, amount);
             return ResponseEntity.ok(transaction);

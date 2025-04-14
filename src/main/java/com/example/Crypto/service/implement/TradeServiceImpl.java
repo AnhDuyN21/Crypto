@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -21,7 +22,7 @@ public class TradeServiceImpl implements TradeService {
 
     @Override
     @Transactional  // Đảm bảo nếu một bước thất bại, toàn bộ giao dịch được rollback
-    public Transaction executeTrade(Long userId, String pair, String tradeType, double amount) {
+    public Transaction executeTrade(Long userId, String pair, String tradeType, BigDecimal amount) {
         // Bước 1: Lấy thông tin người dùng
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -33,10 +34,10 @@ public class TradeServiceImpl implements TradeService {
         }
 
         // Xác định giá giao dịch: dùng bestAsk cho BUY, bestBid cho SELL.
-        double transactionPrice = tradeType.equalsIgnoreCase("BUY")
+        BigDecimal transactionPrice = tradeType.equalsIgnoreCase("BUY")
                 ? cryptoPrice.getBestAskPrice()
                 : cryptoPrice.getBestBidPrice();
-        double total = transactionPrice * amount;
+        BigDecimal total = transactionPrice.multiply(amount);
 
         // Bước 3: Kiểm tra và cập nhật số dư ví
         String cryptoCurrency = pair.replace("USDT", "");  // Lấy mã coin từ cặp (vd: "ETH" từ "ETHUSDT")
@@ -48,17 +49,17 @@ public class TradeServiceImpl implements TradeService {
         // Nếu giao dịch là BUY: trừ USDT, cộng coin vào ví
         // Nếu giao dịch là SELL: trừ coin, cộng USDT vào ví
         if (tradeType.equalsIgnoreCase("BUY")) {
-            if (usdtWallet.getBalance() < total) {
+            if (usdtWallet.getBalance().compareTo(total) < 0) {
                 throw new RuntimeException("Insufficient USDT balance");
             }
-            usdtWallet.setBalance(usdtWallet.getBalance() - total);
-            cryptoWallet.setBalance(cryptoWallet.getBalance() + amount);
+            usdtWallet.setBalance(usdtWallet.getBalance().subtract(total));
+            cryptoWallet.setBalance(cryptoWallet.getBalance().add(total));
         } else if (tradeType.equalsIgnoreCase("SELL")) {
-            if (cryptoWallet.getBalance() < amount) {
+            if (cryptoWallet.getBalance().compareTo(total) < 0) {
                 throw new RuntimeException("Insufficient " + cryptoCurrency + " balance");
             }
-            cryptoWallet.setBalance(cryptoWallet.getBalance() - amount);
-            usdtWallet.setBalance(usdtWallet.getBalance() + total);
+            cryptoWallet.setBalance(cryptoWallet.getBalance().subtract(total));
+            usdtWallet.setBalance(usdtWallet.getBalance().add(amount));
         } else {
             throw new IllegalArgumentException("Trade type must be either BUY or SELL");
         }

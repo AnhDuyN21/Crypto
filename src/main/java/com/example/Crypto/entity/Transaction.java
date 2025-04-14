@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,11 +20,11 @@ public class Transaction {
 
     private String type; // BUY / SELL
 
-    private Double price;
+    private BigDecimal price;
 
-    private Double amount;
+    private BigDecimal amount;
 
-    private Double total;
+    private BigDecimal total;
 
     private LocalDateTime timestamp;
 
